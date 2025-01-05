@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, MouseEventHandler } from "react";
 import {
   Card,
   CardContent,
@@ -24,21 +24,24 @@ export default function ErrorCorrectionApp() {
   const [input, setInput] = useState("");
   const [results, setResults] = useState<Result[]>([]);
 
-  const handleSubmit = (e: { preventDefault: () => void }) => {
+  const handleSubmit: MouseEventHandler<HTMLButtonElement> = (e) => {
     e.preventDefault();
-    const array = input.split(",").map((num) => parseInt(num.trim()));
+
+    const array = input.match(/[01]/g)?.map((num) => parseInt(num, 10)) || [];
+
     if (
-      array.length !== 15 ||
-      array.some((num) => isNaN(num) || (num !== 0 && num !== 1))
+      array.length !== 15 || // Ensure exactly 15 numbers
+      array.some((num) => isNaN(num) || (num !== 0 && num !== 1)) // Validate numbers
     ) {
       setResults([
         {
           title: "Ошибка",
-          content: ["Введите данные"],
+          content: ["Введите корректные данные"],
         },
       ]);
       return;
     }
+
     setResults(analyzeArray(array));
   };
 
@@ -55,7 +58,7 @@ export default function ErrorCorrectionApp() {
         <CardContent className="pt-6">
           <div className="space-y-4">
             <Label htmlFor="input" className="text-muted-foreground">
-              Вставьте числа, разделенные запятыми. Или пробелами. Или без
+              Вставьте 15 чисел, разделенных запятыми. Или пробелами. Или без
               разделителей, мне похуй вообще.
             </Label>
             <Input
@@ -63,7 +66,7 @@ export default function ErrorCorrectionApp() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="1,1,0,0,1,1,0,1,0,0,1,1,1,0,0"
+              placeholder="1 1 0 1 1 0 0 1 0 1 0 0 0 0 0"
               className="font-mono"
             />
           </div>
