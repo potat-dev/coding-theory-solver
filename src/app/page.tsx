@@ -1,7 +1,18 @@
 "use client";
 
 import React, { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { ModeToggle } from "@/components/ui/mode-toggle";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
 
 const GF = [
   [0, 0, 0, 1],
@@ -21,14 +32,14 @@ const GF = [
   [1, 0, 0, 1],
 ];
 
-type result = {
+type Result = {
   title: string;
   content: string[];
 };
 
 export default function ErrorCorrectionApp() {
   const [input, setInput] = useState("");
-  const [results, setResults] = useState<result[]>([]);
+  const [results, setResults] = useState<Result[]>([]);
 
   const gradA = (bits: number[]) => {
     for (let i = 0; i < 15; i++) {
@@ -201,7 +212,7 @@ export default function ErrorCorrectionApp() {
       setResults([
         {
           title: "Ошибка",
-          content: ["Введите 15 чисел (0 или 1), разделённых запятыми"],
+          content: ["Введите данные"],
         },
       ]);
       return;
@@ -213,30 +224,33 @@ export default function ErrorCorrectionApp() {
     <div className="p-4">
       <Card className="mb-4">
         <CardHeader>
-          <CardTitle>Анализ кодов исправления ошибок</CardTitle>
+          <div className="flex justify-between items-center">
+            <CardTitle>Решатор Трофимова 3000</CardTitle>
+            <ModeToggle />
+          </div>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block mb-2">
-                Введите 15 чисел (0 или 1), разделённых запятыми:
-              </label>
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                className="w-full p-2 border rounded"
-                placeholder="1,1,0,0,1,1,0,1,0,0,1,1,1,0,0"
-              />
-            </div>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-            >
-              Анализировать
-            </button>
-          </form>
+        <Separator />
+        <CardContent className="pt-6">
+          <div className="space-y-4">
+            <Label htmlFor="input" className="text-muted-foreground">
+              Вставьте числа, разделенные запятыми. Или пробелами. Или без
+              разделителей, мне похуй вообще.
+            </Label>
+            <Input
+              id="input"
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="1,1,0,0,1,1,0,1,0,0,1,1,1,0,0"
+              className="font-mono"
+            />
+          </div>
         </CardContent>
+        <CardFooter className="flex justify-between">
+          <Button className="w-full" onClick={handleSubmit}>
+            Анализировать
+          </Button>
+        </CardFooter>
       </Card>
 
       {results.map((step, index) => (
