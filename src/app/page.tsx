@@ -1,101 +1,258 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+const GF = [
+  [0, 0, 0, 1],
+  [0, 0, 1, 0],
+  [0, 1, 0, 0],
+  [1, 0, 0, 0],
+  [0, 0, 1, 1],
+  [0, 1, 1, 0],
+  [1, 1, 0, 0],
+  [1, 0, 1, 1],
+  [0, 1, 0, 1],
+  [1, 0, 1, 0],
+  [0, 1, 1, 1],
+  [1, 1, 1, 0],
+  [1, 1, 1, 1],
+  [1, 1, 0, 1],
+  [1, 0, 0, 1],
+];
+
+type result = {
+  title: string;
+  content: string[];
+};
+
+export default function ErrorCorrectionApp() {
+  const [input, setInput] = useState("");
+  const [results, setResults] = useState<result[]>([]);
+
+  const gradA = (bits: number[]) => {
+    for (let i = 0; i < 15; i++) {
+      if (GF[i].every((val, idx) => val === bits[idx])) {
+        return i;
+      }
+    }
+    return -1;
+  };
+
+  const XOR = (a: number[], b: number[]) =>
+    a.map((val, idx) => (val + b[idx]) % 2);
+
+  const searchOneErr = (L1: number) => {
+    const errors = [];
+    for (let i = 0; i < 15; i++) {
+      let La = [0, 0, 0, 1];
+      La = XOR(La, GF[(L1 + i) % 15]);
+      if (gradA(La) === -1) {
+        errors.push(`Корень: a^${i}, Позиция ошибки: ${(15 - i) % 15}`);
+      }
+    }
+    return errors;
+  };
+
+  const searchTwoErr = (L1: number, L2: number) => {
+    const errors = [];
+    for (let i = 0; i < 15; i++) {
+      let La = [0, 0, 0, 1];
+      La = XOR(La, GF[(L1 + i) % 15]);
+      La = XOR(La, GF[(L2 + i * 2) % 15]);
+      if (gradA(La) === -1) {
+        errors.push(`Корень: a^${i}, Позиция ошибки: ${(15 - i) % 15}`);
+      }
+    }
+    return errors;
+  };
+
+  const searchThreeErr = (L1: number, L2: number, L3: number) => {
+    const errors = [];
+    for (let i = 0; i < 15; i++) {
+      let La = [0, 0, 0, 1];
+      La = XOR(La, GF[(L1 + i) % 15]);
+      La = XOR(La, GF[(L2 + i * 2) % 15]);
+      La = XOR(La, GF[(L3 + i * 3) % 15]);
+      if (gradA(La) === -1) {
+        errors.push(`Корень: a^${i}, Позиция ошибки: ${(15 - i) % 15}`);
+      }
+    }
+    return errors;
+  };
+
+  const analyzeArray = (V: number[]) => {
+    const steps = [];
+
+    // Calculate syndromes
+    let S1 = [0, 0, 0, 0];
+    let S3 = [0, 0, 0, 0];
+    let S5 = [0, 0, 0, 0];
+
+    for (let i = 0; i < 15; i++) {
+      if (V[i] === 1) {
+        S1 = XOR(GF[i], S1);
+        S3 = XOR(GF[(i * 3) % 15], S3);
+        S5 = XOR(GF[(i * 5) % 15], S5);
+      }
+    }
+
+    steps.push({
+      title: "Вычисление синдромов",
+      content: [
+        `S1: ${S1.join(" ")}`,
+        `S3: ${S3.join(" ")}`,
+        `S5: ${S5.join(" ")}`,
+      ],
+    });
+
+    const a1 = gradA(S1);
+    const a3 = gradA(S3);
+    const a5 = gradA(S5);
+
+    steps.push({
+      title: "Степени синдромов",
+      content: [`S1 = a^${a1}`, `S3 = a^${a3}`, `S5 = a^${a5}`],
+    });
+
+    if (a1 === -1) {
+      steps.push({
+        title: "Результат",
+        content: ["Ошибок нет"],
+      });
+      return steps;
+    }
+
+    if (a3 === -1 && a5 === -1) {
+      steps.push({
+        title: "Результат",
+        content: ["Одна ошибка"],
+      });
+      steps.push({
+        title: "Позиции ошибок",
+        content: searchOneErr(a1),
+      });
+      return steps;
+    }
+
+    const L1 = GF[a1];
+    steps.push({
+      title: "Локатор ошибки L1",
+      content: [`L1: ${L1.join(" ")}`],
+    });
+
+    const tmp2 = gradA(XOR(GF[(a1 * 3) % 15], S3));
+    const tmp1 = gradA(XOR(GF[(a1 * 2 + a3) % 15], S5));
+
+    if (tmp1 === -1 || tmp2 === -1) {
+      const L2 = XOR(GF[(a3 + (15 - a1)) % 15], GF[(a1 * 3 + (15 - a1)) % 15]);
+      const gradL2 = gradA(L2);
+
+      if (gradL2 !== -1) {
+        steps.push({
+          title: "Две ошибки",
+          content: searchTwoErr(a1, gradL2),
+        });
+      } else {
+        steps.push({
+          title: "Одна ошибка",
+          content: searchOneErr(a1),
+        });
+      }
+      return steps;
+    }
+
+    const L2 = GF[(tmp1 + (15 - tmp2)) % 15];
+    const gradL2 = gradA(L2);
+
+    if (gradL2 === -1) {
+      steps.push({
+        title: "Одна ошибка",
+        content: searchOneErr(a1),
+      });
+      return steps;
+    }
+
+    const L3 = XOR(XOR(GF[(a1 * 3) % 15], S3), GF[(a1 + gradL2) % 15]);
+    const gradL3 = gradA(L3);
+
+    if (gradL3 !== -1) {
+      steps.push({
+        title: "Три ошибки",
+        content: searchThreeErr(a1, gradL2, gradL3),
+      });
+    } else {
+      steps.push({
+        title: "Две ошибки",
+        content: searchTwoErr(a1, gradL2),
+      });
+    }
+
+    return steps;
+  };
+
+  const handleSubmit = (e: { preventDefault: () => void }) => {
+    e.preventDefault();
+    const array = input.split(",").map((num) => parseInt(num.trim()));
+    if (
+      array.length !== 15 ||
+      array.some((num) => isNaN(num) || (num !== 0 && num !== 1))
+    ) {
+      setResults([
+        {
+          title: "Ошибка",
+          content: ["Введите 15 чисел (0 или 1), разделённых запятыми"],
+        },
+      ]);
+      return;
+    }
+    setResults(analyzeArray(array));
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <div className="p-4">
+      <Card className="mb-4">
+        <CardHeader>
+          <CardTitle>Анализ кодов исправления ошибок</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block mb-2">
+                Введите 15 чисел (0 или 1), разделённых запятыми:
+              </label>
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                className="w-full p-2 border rounded"
+                placeholder="1,1,0,0,1,1,0,1,0,0,1,1,1,0,0"
+              />
+            </div>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              Анализировать
+            </button>
+          </form>
+        </CardContent>
+      </Card>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      {results.map((step, index) => (
+        <Card key={index} className="mb-4">
+          <CardHeader>
+            <CardTitle>{step.title}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {step.content.map((line, i) => (
+                <div key={i}>{line}</div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 }
