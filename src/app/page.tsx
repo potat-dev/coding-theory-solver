@@ -13,16 +13,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { analyzeArray } from "@/lib/math";
-
-type Result = {
-  title: string;
-  content: string[];
-};
+import { Step, analyzeBCH } from "@/lib/math";
 
 export default function ErrorCorrectionApp() {
   const [input, setInput] = useState("");
-  const [results, setResults] = useState<Result[]>([]);
+  const [results, setResults] = useState<Step[]>([]);
 
   const handleSubmit: MouseEventHandler<HTMLButtonElement> = (e) => {
     e.preventDefault();
@@ -42,7 +37,7 @@ export default function ErrorCorrectionApp() {
       return;
     }
 
-    setResults(analyzeArray(array));
+    setResults(analyzeBCH(array));
   };
 
   return (
